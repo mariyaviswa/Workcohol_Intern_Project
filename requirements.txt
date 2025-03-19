@@ -8,3 +8,4 @@ sentence-transformers==2.2.2
 langchain-community
 google-generativeai
 langchain-google-genai
+spacy

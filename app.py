@@ -13,6 +13,9 @@ from langchain.llms import HuggingFaceHub
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
+from textblob import TextBlob
+
+
 
 # load .env file
 load_dotenv()
@@ -77,6 +80,32 @@ def handle_userInput(user_question):
             st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
 
 
+
+
+
+# loading Textblob for sentiment analysis 
+
+def analyze_sentiment(user_question):
+    senti=TextBlob(user_question).sentiment.polarity
+    doc = senti(user_question)
+    
+    # Calculating the sentiment scores
+    sentiment_score = doc._.sentiment
+    
+    # sentiment scores
+    if sentiment_score > 0.05:
+        return 'positive'
+    elif sentiment_score < -0.05:
+        return 'negative'
+    else:
+        return 'neutral'
+
+# Testing the func
+
+user_question= 'I like this product!'
+print(analyze_sentiment(user_question))  
+
+
 def main():
 
     # Initialize the conversation
@@ -99,6 +128,12 @@ def main():
     if user_question:
         handle_userInput(user_question)
 
+    # sentiment analyse
+        sentiment=analyze_sentiment(user_question)
+
+    # displaying the sentiment
+        st.write(f"Sentiment:{sentiment}")
+
     # for uploading docs (pdfs)
     with st.sidebar:
         st.subheader("Your Documents :books:")
@@ -120,6 +155,10 @@ def main():
                 st.session_state.conversation = get_conversation_chain(vectorStore)
 
                 st.success("PDF processed successfully!")
+
+                # stage 5 -analysing the sentiment of user_question
+
+                
 
 
 if __name__ == "__main__":
