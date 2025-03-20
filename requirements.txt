@@ -1,6 +1,7 @@
 streamlit
 python-dotenv
 PyPDF2
+langchain
 faiss-cpu
 huggingface-hub==0.25.2
 InstructorEmbedding==1.0.0
@@ -9,3 +10,4 @@ langchain-community
 google-generativeai
 langchain-google-genai
 spacy
+

@@ -13,7 +13,8 @@ from langchain.llms import HuggingFaceHub
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
-from textblob import TextBlob
+from textblob import TextBlob  # for sentiment analysis
+import spacy # entity recognition
 
 
 
@@ -81,6 +82,20 @@ def handle_userInput(user_question):
 
 
 
+# entity recognition ( to extract address, org , location etc .... from the user question
+# Load the English language model
+
+nlp = spacy.load("en_core_web_sm")
+
+# Process the text
+text = 'user_question'
+doc = nlp(text)
+
+# Print the entities
+for ent in doc.ents:
+    print(ent.text, ent.label_)
+
+
 
 
 # loading Textblob for sentiment analysis 
@@ -123,7 +138,7 @@ def main():
 
     st.header("Chat with MULTIPLE PDFs :books:")
 
-    # Get input from users
+ # Get input from users
     user_question = st.text_input("Ask a question about your documents")
     if user_question:
         handle_userInput(user_question)
@@ -163,3 +178,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+                
+
+                
+
+
