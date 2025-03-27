@@ -15,6 +15,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from textblob import TextBlob  # for sentiment analysis
 import spacy # entity recognition
+import speech_recognition as sr # speech recognition through audio to support multimodal
 
 
 
@@ -31,7 +32,7 @@ def get_pdf_text(pdf_docs):
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text += page.extract_text() or ""
+            text += page.extract_text() or "" #  "" = adding empty str instead None
     return text
 
 
@@ -140,6 +141,24 @@ def main():
 
  # Get input from users
     user_question = st.text_input("Ask a question about your documents")
+
+ # speech recognition 
+ 
+    st.subheader(" Use your Voice :")
+    if st.button("Record"):
+        r=sr.Recognizer()
+        with sr.Microphone() as source:
+            st.write("Listening")
+            try:
+                audio=r.listen(source)
+                user_question=r.recognize_google(audio)
+                st.write("you said:",user_question)
+            except sr.UnknownValueError:
+                st.write("sorry i could not recognize your speech ,try again.")
+            except sr.RequestError:
+                st.write("sorry for the inconvience, try again")
+
+# process use_question (if provided)                
     if user_question:
         handle_userInput(user_question)
 
