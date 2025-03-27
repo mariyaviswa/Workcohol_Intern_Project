@@ -16,7 +16,8 @@ import os
 from textblob import TextBlob  # for sentiment analysis
 import spacy # entity recognition
 import speech_recognition as sr # speech recognition through audio to support multimodal
-
+pip install transformers 
+from transformers import pipeline
 
 
 # load .env file
@@ -141,6 +142,16 @@ def main():
 
  # Get input from users
     user_question = st.text_input("Ask a question about your documents")
+
+# auto compleletion of users question
+    if user_question:
+        if st.button("Auto complete"):
+            model=pipeline("text-genration",model="gpt2")
+            completion=model(user_question)[0]['generated_text']
+
+            #[0] used to access the first dict in  the list
+            
+            st.write("Auto completion:",completion)  
 
  # speech recognition 
  
