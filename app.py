@@ -70,9 +70,40 @@ def get_conversation_chain(vectorStore):
     )
     return conversationChain
 
+# context-aware emotional intelligence
+# load the sentiment(emotion) detector model
+# for analysing variable = emotion is used
+# for genertaing response variable = emotionsb is used
+# model="j-hartmann/emotion-english-distilroberta-base" = for english language #
+
+sentiment_analyser=pipeline("text-classification",model="j-hartmann/emotion-english-distilroberta-base", return_all_scores=True)
+def analyse_sentiment(user_question):
+    try:
+        emotion=sentiment_analyser(user_question)[0] # getting the emotions scores
+        emotion_highscore=max(emotion,key=lambda x:x['score'])
+        return emotion_highscore['label'],emotion_highscore['score']
+    except Exception as e:
+        # changed to neutral if any error comes
+        return "neutral",0.0
+
+
 
 # Handle user questions
 def handle_userInput(user_question):
+    emotions,emotions_score=analyse_sentiment(user_question)
+
+# adding the extracted emotions to session state(conersation history)
+
+    st.session_state.emotions.append({
+        "Question":user_question,
+        "Emotion":emotions,
+        "Emotion_score":emotions_score
+    })
+    
+    
+
+# getting response fromn conversion chain
+
     response = st.session_state.conversation({"question": user_question})
     st.session_state.chat_history = response["chat_history"]
 
@@ -80,39 +111,46 @@ def handle_userInput(user_question):
         if i % 2 != 0:  # Bot's answer
             st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
         else:  # Human's question
+            emotion_data=st.session_state.emotions[i//2]
             st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
 
+# providing response for the emotions obtain from user questions
 
+def generate_contextual_response(user_question):
+    emotions,_=analyse_sentiment(user_question)
+    response=st.session_state.conversation({"question":user_question})['answer']
 
-# entity recognition ( to extract address, org , location etc .... from the user question
-# Load the English language model
+# aading emotions to response
 
-nlp = spacy.load("en_core_web_sm")
+    emotion_responses = {
+        "anger": "I'm sorry to hear that you're upset. Let me try to help: ",
+        "joy": "That's great! Here's some more information: ",
+        "sadness": "I'm here to help. Let me assist you: ",
+        "fear": "Don't worry, I'm here to guide you: ",
+        "neutral": "Here's the information you asked for: ",
+        "disgust": "Sorry to hear that. Let's sort it out: ",
+        "surprise": "Wow, that's interesting! ",
+    }
+    return emotion_responses.get(emotions, "I'm not sure how to respond to that: ") + response
 
-# Process the text
-text = 'user_question'
-doc = nlp(text)
+# Entity recognition ( to extract address, org , location etc .... from the user question
+# Load the English language model thorugh spacy
 
-# Print the entities
-for ent in doc.ents:
-    print(ent.text, ent.label_)
-
-
+entity_model=spacy.load("en_core_web_sm")
+def extract_entites(user_question):
+    doc=entity_model(user_question)
+    return[(ent.text,ent.label_) for ent in doc.ents]
 
 
 # loading Textblob for sentiment analysis 
 
 def analyze_sentiment(user_question):
-    senti=TextBlob(user_question).sentiment.polarity
-    doc = senti(user_question)
+    sentiment=TextBlob(user_question).sentiment.polarity
     
-    # Calculating the sentiment scores
-    sentiment_score = doc._.sentiment
-    
-    # sentiment scores
-    if sentiment_score > 0.05:
+ # sentiment scores
+    if sentiment > 0.05:
         return 'positive'
-    elif sentiment_score < -0.05:
+    elif sentiment < -0.05:
         return 'negative'
     else:
         return 'neutral'
@@ -129,9 +167,11 @@ def main():
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
 
-    # Initialize the chat_history
+    # Initialize the chat_history and emotions
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+        st.session_state.chat_history = st.session_state.get("chat_history",[])
+    if "emotions" not in st.session_state:
+        st.session_state.emotions=st.session_state.get("emotions",[])
 
     # set the page layout and title
     st.set_page_config(page_title="chatPDF", page_icon=":books:")
@@ -146,28 +186,29 @@ def main():
 # auto compleletion of users question
     if user_question:
         if st.button("Auto complete"):
-            model=pipeline("text-genration",model="gpt2")
-            completion=model(user_question)[0]['generated_text']
+            model=pipeline("text-generation",model="gpt2")
+            completion=model(user_question,max_length=50)[0]['generated_text']
+            st.write("Auto completion:",completion)
 
-            #[0] used to access the first dict in  the list
+# [0] is used to acces the first dict in list
             
-            st.write("Auto completion:",completion)  
-
- # speech recognition 
+# speech recognition 
  
-    st.subheader(" Use your Voice :")
+    st.subheader("record your voice")
     if st.button("Record"):
         r=sr.Recognizer()
         with sr.Microphone() as source:
-            st.write("Listening")
+            st.write("Listening......")
             try:
                 audio=r.listen(source)
                 user_question=r.recognize_google(audio)
                 st.write("you said:",user_question)
             except sr.UnknownValueError:
                 st.write("sorry i could not recognize your speech ,try again.")
+                user_question=""
             except sr.RequestError:
                 st.write("sorry for the inconvience, try again")
+                user_question=""
 
 # process use_question (if provided)                
     if user_question:
